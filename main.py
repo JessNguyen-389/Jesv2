@@ -23,8 +23,18 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _migrate_schema()
     _seed_default_packages()
     yield
+
+
+def _migrate_schema():
+    """Thêm cột mới cho bảng đã tồn tại — create_all() không tự ALTER TABLE."""
+    with engine.connect() as conn:
+        conn.execute(text(
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS target_key VARCHAR(20)"
+        ))
+        conn.commit()
 
 
 def _seed_default_packages():

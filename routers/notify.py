@@ -29,6 +29,9 @@ class Notification(Base):
     is_active  = Column(Boolean,     default=True)
     created_at = Column(DateTime,    default=datetime.utcnow)
     created_by = Column(String(100), nullable=True)
+    # NULL = gửi cho tất cả khách hàng (broadcast).
+    # Có giá trị = chỉ khách hàng có đúng license_key này mới thấy.
+    target_key = Column(String(20),  nullable=True, index=True)
 
 
 # ── Auth ──────────────────────────────────────────────────────
@@ -49,18 +52,20 @@ class SendRequest(BaseModel):
 # ── Public ────────────────────────────────────────────────────
 
 @router_public.get("/latest")
-def get_latest(db: Session = Depends(get_db)):
+def get_latest(key: str = "", db: Session = Depends(get_db)):
     """
     App gọi endpoint này để lấy thông báo đang active.
-    Trả về danh sách thông báo mới nhất (tối đa 10).
+    Trả về thông báo broadcast (target_key rỗng) + thông báo riêng
+    cho đúng license key của app đó (nếu có truyền `key`).
     """
-    items = (
-        db.query(Notification)
-        .filter_by(is_active=True)
-        .order_by(Notification.created_at.desc())
-        .limit(10)
-        .all()
-    )
+    q = db.query(Notification).filter(Notification.is_active == True)
+    if key:
+        q = q.filter(
+            (Notification.target_key.is_(None)) | (Notification.target_key == key)
+        )
+    else:
+        q = q.filter(Notification.target_key.is_(None))
+    items = q.order_by(Notification.created_at.desc()).limit(10).all()
     return [
         {
             "id":         n.id,
@@ -104,6 +109,7 @@ def list_notifications(db: Session = Depends(get_db)):
             "message":    n.message,
             "type":       n.type,
             "is_active":  n.is_active,
+            "target_key": n.target_key or "",
             "created_at": n.created_at.isoformat() if n.created_at else "",
         }
         for n in items

@@ -233,13 +233,14 @@ def reject_refund(refund_id: int, body: RejectBody, db: Session = Depends(get_db
 
 def _send_refund_notify(db, license_key: str,
                         title: str, message: str, ntype: str = "info"):
-    """Tạo thông báo trong bảng notifications để khách nhận qua chuông."""
+    """Tạo thông báo riêng cho đúng khách hàng có license_key này."""
     try:
         from routers.notify import Notification
         n = Notification(
-            title=f"[{license_key[:12]}] {title}",
+            title=title,
             message=message,
             type=ntype,
+            target_key=license_key,
         )
         db.add(n)
         db.commit()
