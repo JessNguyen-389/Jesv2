@@ -7,7 +7,7 @@ settings_window.py
 themes.py
 db.py
 prompts.py
-services.py
+app_services.py
 admin_app.py
 app_config.py
 make_icon.py
