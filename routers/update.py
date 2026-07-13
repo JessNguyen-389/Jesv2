@@ -74,6 +74,7 @@ def release_version(body: ReleaseRequest, db: Session = Depends(get_db)):
         existing.download_url = body.download_url
         existing.release_note = body.release_note
         existing.is_mandatory = body.is_mandatory
+        existing.created_at   = datetime.utcnow()
     else:
         db.add(AppVersion(**body.model_dump()))
     db.commit()
